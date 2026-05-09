@@ -1,0 +1,11 @@
+- name: Execute Remote Command
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Get Disk Usage
+      shell: "df -h / | tail -1"
+      register: disk_usage # Captures output
+
+    - name: Display Data
+      debug:
+        msg: "Disk usage on {{ inventory_hostname }}: {{ disk_usage.stdout }}"
