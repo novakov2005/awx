@@ -3,7 +3,10 @@
   gather_facts: true
   become: true
   tasks:
-
+ - name: Print a host variable inventory host
+    debug:
+      var: inventory_hostname
+      
      - name: Who am I
        ansible.builtin.command: whoami
        register: _command
