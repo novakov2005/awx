@@ -5,7 +5,7 @@
   tasks:
   
      - name: Who am I
-       ansible.builtin.command: whoami
+       ansible.builtin.command: hostname
        register: _command
 
      - name: debug
