@@ -1,5 +1,7 @@
 - name: Play 1
   hosts: all
+  gather_facts: true
+  become: true
   tasks:
 
      - name: Who am I
