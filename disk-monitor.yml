@@ -17,7 +17,7 @@
 
     - name: Parse disk usage and identify issues
       ansible.builtin.set_fact:
-        disk_status: >-
+        disk_status: >
           {% set results = [] %}
           {% for line in disk_output.stdout_lines %}
           {% set parts = line.split() %}
