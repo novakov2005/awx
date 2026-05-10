@@ -1,1 +1,61 @@
+---
+- name: Monitor disk space across all servers
+  hosts: all
+  become: yes
+  gather_facts: yes
+  vars:
+    disk_issues: []
 
+  tasks:
+    - name: Get disk usage for all relevant filesystems
+      ansible.builtin.shell:
+        cmd: >
+          df -BM --output=target,fstype,size,used,avail,pcent
+          | tail -n +2
+          | grep -v -E '({{ disk_exclude_types | join("|") }})'
+      register: disk_output
+      changed_when: false
+
+    - name: Parse disk usage and identify issues
+      ansible.builtin.set_fact:
+        disk_status: >-
+          {% set results = [] %}
+          {% for line in disk_output.stdout_lines %}
+          {% set parts = line.split() %}
+          {% if parts | length >= 6 %}
+          {% set mount = parts[0] %}
+          {% set fstype = parts[1] %}
+          {% set total = parts[2] | replace('M','') | int %}
+          {% set used = parts[3] | replace('M','') | int %}
+          {% set avail = parts[4] | replace('M','') | int %}
+          {% set pct = parts[5] | replace('%','') | int %}
+          {% if total > disk_min_size_mb %}
+          {% set status = 'EMERGENCY' if pct >= disk_emergency_threshold
+                     else 'CRITICAL' if pct >= disk_critical_threshold
+                     else 'WARNING' if pct >= disk_warning_threshold
+                     else 'OK' %}
+          {% set _ = results.append({
+            'mount': mount,
+            'fstype': fstype,
+            'total_mb': total,
+            'used_mb': used,
+            'avail_mb': avail,
+            'percent': pct,
+            'status': status
+          }) %}
+          {% endif %}
+          {% endif %}
+          {% endfor %}
+          {{ results }}
+
+    - name: Identify partitions with issues
+      ansible.builtin.set_fact:
+        disk_issues: "{{ disk_status | selectattr('status', 'ne', 'OK') | list }}"
+
+    - name: Display disk status summary
+      ansible.builtin.debug:
+        msg: |
+          === Disk Status for {{ inventory_hostname }} ===
+          {% for disk in disk_status %}
+          [{{ disk.status }}] {{ disk.mount }} - {{ disk.percent }}% used ({{ disk.avail_mb }}MB free)
+          {% endfor %}
