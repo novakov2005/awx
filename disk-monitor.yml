@@ -47,14 +47,10 @@
           {% endfor %}
           {{ results }}
 
-    - name: Identify partitions with issues
-      ansible.builtin.set_fact:
-        disk_issues: "{{ disk_status | selectattr('status', 'ne', 'OK') | list }}"
-
     - name: Display disk status summary
       ansible.builtin.debug:
         msg: |
           === Disk Status for {{ inventory_hostname }} ===
           {% for disk in disk_status %}
-          [{{ disk.status }}] {{ disk.mount }} - {{ disk.percent }}% used ({{ disk.avail_mb }}MB free)
+          {{ disk.mount }} - {{ disk.percent }}% used ({{ disk.avail_mb }}MB free)
           {% endfor %}
