@@ -1,54 +1,32 @@
-map $host $basedomain {
+---
+- name: Update nginx config
+  hosts: webservers
+  become: true
 
-    # 3-level TLD (jp, uk, au и т.н.)
-	~^(?:.+\.)?([^.]+\.(?:co|ne|or|ac|go|com|net|org|gov|ac|or|br|edu|info|inf|mi)\.(jp|uk|au|nz|hr|mx|in|at|tr|it|es|mk|pl|pt|pe|ve|ar|br|tw|za|ug|ng|co|tz|ke|br))$ $1;
+  tasks:
+    - name: Backup old config
+      copy:
+        src: /etc/nginx/nginx.conf
+        dest: /etc/nginx/nginx.conf.bak
+        remote_src: true
 
-    # normal domains
-    ~^(?:.+\.)?([^.]+\.[^.]+)$ $1;
+    - name: Upload nginx config
+      template:
+        src: templates/agedlinks.conf.j2
+        dest: /etc/nginx/sites-available/agedlinks.conf
+        owner: root
+        group: root
+        mode: '0644'
 
-    default $host;
-}
-server {
-    	listen 80 default_server;
-    	listen [::]:80 default_server;
+    - name: Test nginx config
+      command: nginx -t
+      register: nginx_test
 
-	server_name _;
+    - name: Show nginx test
+      debug:
+        var: nginx_test.stdout
 
-	root /var/www/$basedomain;
-
-	index index.php index.html index.htm;
-
-	# For testing purpase
-	#add_header X-HOST $host;
-	#add_header X-DOMAIN $basedomain;
-	#add_header X-ROOT $document_root;
-
-if ($host ~* "\.\.") {
-    		return 444;
-	}
-
-	location ~* /(vendor|storage|\.git) {
-    		deny all;
-	}
-
- 	location / {
-		#try_files $uri $uri/ /index.php?$query_string;
-		try_files $uri $uri/ /index.php$is_args$args;
-    	}
-
-	location ~ \.php$ {
-		try_files $uri /index.php?$query_string;
-		fastcgi_index index.php;
-		fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-		fastcgi_split_path_info ^(.+\.php)(/.+)$;
-		#fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-		fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-		fastcgi_param PATH_INFO $fastcgi_path_info;
-		include fastcgi_params;
-	}
-
-	# Custom Log format in json format from nginx.conf
-	# Important: Must have facility, needed for rsyslog config
-	access_log syslog:server=unix:/dev/log,facility=local7 json_combined;
-	error_log  syslog:server=unix:/dev/log,facility=local6 warn;
-}
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
