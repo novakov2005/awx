@@ -6,7 +6,7 @@
   tasks:
     - name: Backup old config
       copy:
-        src: /etc/nginx/nginx.conf
+        src: /etc/nginx/sites-available/agedlinks.conf
         dest: /etc/nginx/sites-available/agedlinks.conf.bak
         remote_src: true
 
