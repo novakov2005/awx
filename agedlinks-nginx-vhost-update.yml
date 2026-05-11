@@ -7,7 +7,7 @@
     - name: Backup old config
       copy:
         src: /etc/nginx/nginx.conf
-        dest: /etc/nginx/nginx.conf.bak
+        dest: /etc/nginx/sites-available/agedlinks.conf.bak
         remote_src: true
 
     - name: Upload nginx config
