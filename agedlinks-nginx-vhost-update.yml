@@ -1,6 +1,6 @@
 ---
 - name: Update nginx config
-  hosts: webservers
+  hosts: all
   become: true
 
   tasks:
