@@ -1,3 +1,4 @@
+---
 - name: Monitor disk space across all servers
   hosts: all
   become: yes
@@ -17,7 +18,7 @@
 
     - name: Parse disk usage and identify issues
       ansible.builtin.set_fact:
-        disk_status: >
+        disk_status: >-
           {% set results = [] %}
           {% for line in disk_output.stdout_lines %}
           {% set parts = line.split() %}
@@ -47,10 +48,14 @@
           {% endfor %}
           {{ results }}
 
+    - name: Identify partitions with issues
+      ansible.builtin.set_fact:
+        disk_issues: "{{ disk_status | selectattr('status', 'ne', 'OK') | list }}"
+
     - name: Display disk status summary
       ansible.builtin.debug:
         msg: |
           === Disk Status for {{ inventory_hostname }} ===
           {% for disk in disk_status %}
-          {{ disk.mount }} - {{ disk.percent }}% used ({{ disk.avail_mb }}MB free)
+          [{{ disk.status }}] {{ disk.mount }} - {{ disk.percent }}% used ({{ disk.avail_mb }}MB free)
           {% endfor %}
