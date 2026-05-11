@@ -16,28 +16,41 @@
       register: disk_output
       changed_when: false
 
-    - name: Parse disk usage and identify issues
+- name: Parse disk usage and identify issues
   ansible.builtin.set_fact:
-    disk_status: "{{ disk_status | default([]) + [ {
-      'mount': parts[0],
-      'fstype': parts[1],
-      'total_mb': (parts[2] | replace('M','') | int),
-      'used_mb': (parts[3] | replace('M','') | int),
-      'avail_mb': (parts[4] | replace('M','') | int),
-      'percent': (parts[5] | replace('%','') | int),
-      'status': (
-        'EMERGENCY' if (parts[5] | replace('%','') | int) >= disk_emergency_threshold
-        else 'CRITICAL' if (parts[5] | replace('%','') | int) >= disk_critical_threshold
-        else 'WARNING' if (parts[5] | replace('%','') | int) >= disk_warning_threshold
-        else 'OK'
-      )
-    } ] }}"
+    disk_status: "{{ results }}"
   vars:
-    parts: "{{ item.split() }}"
-  loop: "{{ disk_output.stdout_lines }}"
-  when:
-    - parts | length >= 6
-    - (parts[2] | replace('M','') | int) > disk_min_size_mb
+    results: |
+      {% set ns = namespace(items=[]) %}
+      {% for line in disk_output.stdout_lines %}
+      {% set parts = line.split() %}
+      {% if parts | length >= 6 %}
+      {% set mount = parts[0] %}
+      {% set fstype = parts[1] %}
+      {% set total = parts[2] | replace('M','') | int %}
+      {% set used = parts[3] | replace('M','') | int %}
+      {% set avail = parts[4] | replace('M','') | int %}
+      {% set pct = parts[5] | replace('%','') | int %}
+
+      {% if total > disk_min_size_mb %}
+      {% set status = 'EMERGENCY' if pct >= disk_emergency_threshold
+                 else 'CRITICAL' if pct >= disk_critical_threshold
+                 else 'WARNING' if pct >= disk_warning_threshold
+                 else 'OK' %}
+
+      {% set _ = ns.items.append({
+        'mount': mount,
+        'fstype': fstype,
+        'total_mb': total,
+        'used_mb': used,
+        'avail_mb': avail,
+        'percent': pct,
+        'status': status
+      }) %}
+      {% endif %}
+      {% endif %}
+      {% endfor %}
+      {{ ns.items }}
 
     - name: Identify partitions with issues
       ansible.builtin.set_fact:
