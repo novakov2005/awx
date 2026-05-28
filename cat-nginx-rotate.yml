@@ -10,4 +10,4 @@
 
     - name: Show logrotate conf
       debug:
-        msg: "Disk usage is {{ logrotate_conf.stdout }}%"
+        msg: "NginX logrotate conf is {{ logrotate_conf.stdout }}%"
