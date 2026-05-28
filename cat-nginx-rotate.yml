@@ -1,0 +1,13 @@
+---
+- name: Check NginX logrotate conf
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Get NginX logrotate conf
+      shell: cat /etc/logrotate.d/nginx
+      register: logrotate_conf
+
+    - name: Show logrotate conf
+      debug:
+        msg: "Disk usage is {{ logrotate_conf.stdout }}%"
