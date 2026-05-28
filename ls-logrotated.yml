@@ -1,0 +1,13 @@
+---
+- name: Check logrotate.d
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Get NginX logrotate conf
+      shell: ls /etc/logrotate.d/
+      register: logrotate_conf
+
+    - name: Show logrotate conf
+      debug:
+        msg: "logrotate.d have {{ logrotate_conf.stdout }}%"
