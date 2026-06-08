@@ -1,6 +1,6 @@
 ---
 - name: Deploy nginxrsyslog logrotate configuration
-  hosts: live.td-test.stream
+  hosts: all
   become: true
 
   tasks:
