@@ -1,0 +1,14 @@
+---
+- name: Deploy nginxrsyslog logrotate configuration
+  hosts: live.td-test.stream
+  become: true
+
+  tasks:
+
+    - name: Upload nginxrsyslog
+      template:
+        src: templates/nginxrsyslog.j2
+        dest: /etc/logrotate.d/nginxrsyslog
+        owner: root
+        group: root
+        mode: '0644'
