@@ -1,0 +1,13 @@
+/var/log/nginx/sites/*.log
+{
+    rotate 4
+    daily
+    compress
+    missingok
+    notifempty
+    delaycompress
+    sharedscripts
+    postrotate
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}
