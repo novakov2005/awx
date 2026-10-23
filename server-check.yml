@@ -1,0 +1,53 @@
+
+---
+- name: Check Nginx and PHP environment
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check PHP CLI version
+      ansible.builtin.command: php -v
+      register: php_cli
+      changed_when: false
+      failed_when: false
+
+    - name: Find installed PHP-FPM packages
+      ansible.builtin.shell: |
+        dpkg-query -W -f='${binary:Package} ${Version}\n' \
+          'php*-fpm' 2>/dev/null |
+        grep -E '^php[0-9.]+-fpm ' || true
+      register: php_fpm_packages
+      changed_when: false
+
+    - name: Find PHP-FPM services
+      ansible.builtin.shell: |
+        systemctl list-units --all --type=service \
+          --no-legend --plain |
+        awk '$1 ~ /^php[0-9.]+-fpm.service$/ {
+          print $1, $3, $4
+        }'
+      register: php_fpm_services
+      changed_when: false
+
+    - name: Check Nginx version
+      ansible.builtin.command: nginx -v
+      register: nginx_version
+      changed_when: false
+      failed_when: false
+
+    - name: Check Nginx service
+      ansible.builtin.command: systemctl is-active nginx
+      register: nginx_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display server report
+      ansible.builtin.debug:
+        msg:
+          server: "{{ inventory_hostname }}"
+          php_cli: "{{ php_cli.stdout_lines | first | default('Not installed') }}"
+          php_fpm_packages: "{{ php_fpm_packages.stdout_lines }}"
+          php_fpm_services: "{{ php_fpm_services.stdout_lines }}"
+          nginx_version: "{{ nginx_version.stderr | default('') }}"
+          nginx_status: "{{ nginx_status.stdout }}"
