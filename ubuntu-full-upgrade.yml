@@ -1,0 +1,53 @@
+
+---
+- name: Ubuntu Upgrade - Preserve PHP Version
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: 1
+
+  tasks:
+    - name: Get PHP version before upgrade
+      ansible.builtin.command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_branch
+      changed_when: false
+
+    - name: Get full PHP version before upgrade
+      ansible.builtin.command: php -v
+      register: php_before
+      changed_when: false
+
+    - name: Update APT cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: "yes"
+        dpkg_options: force-confdef,force-confold
+        lock_timeout: 300
+
+    - name: Get PHP version after upgrade
+      ansible.builtin.command: php -v
+      register: php_after
+      changed_when: false
+
+    - name: Get PHP branch after upgrade
+      ansible.builtin.command: php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;"
+      register: php_branch_after
+      changed_when: false
+
+    - name: Verify PHP branch unchanged
+      ansible.builtin.assert:
+        that:
+          - php_branch.stdout == php_branch_after.stdout
+        fail_msg: "PHP branch changed during upgrade!"
+        success_msg: "PHP branch preserved."
+
+    - name: Display upgrade report
+      ansible.builtin.debug:
+        msg:
+          - "SERVER: {{ inventory_hostname }}"
+          - "PHP BEFORE: {{ php_before.stdout_lines | first }}"
+          - "PHP AFTER: {{ php_after.stdout_lines | first }}"
+          - "PHP BRANCH: {{ php_branch.stdout }}"
